@@ -19,6 +19,7 @@
 #include "vector.hpp"
 
 
+#include "../common/data_types.hpp"
 
 
 

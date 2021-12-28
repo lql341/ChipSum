@@ -23,6 +23,8 @@
 #include <iostream>
 using namespace std;
 
+#include <Kokkos_Vector.hpp>
+
 #include "../impl_abstract.hpp"
 #include "../../../chipsum_macro.h"
 #include "../../numeric_traits.hpp"
@@ -48,7 +50,7 @@ namespace Numeric {
 template <typename ValueType,typename ...Props>
 struct Vector_Traits<ValueType, ChipSum::Backend::KokkosKernels,Props...>
         : public Operator_Traits<ValueType> {
-    using vector_type = Kokkos::View<ValueType*>;
+    using vector_type = Kokkos::vector<ValueType>;
     using size_type = typename vector_type::size_type;
     using scalar_type = Kokkos::View<ValueType>;
     using value_type = typename vector_type::value_type;
@@ -89,27 +91,30 @@ template <typename ValueType> using traits = Vector_Traits<ValueType,ChipSum::Ba
 template<typename ValueType,typename ST>
 
 CHIPSUM_FUNCTION_INLINE void create(
-        Kokkos::View<ValueType*>& x,
+        Kokkos::vector<ValueType>& x,
         const ST& n
         )
 {
 
-    x = typename traits<ValueType>::vector_type("vector_" + ::std::to_string(vector_name++),
-                                                n);
+    x = typename traits<ValueType>::vector_type(n);
 }
 
-template <typename ValueType,typename ST>
+
+
+template <typename ValueType>
 CHIPSUM_FUNCTION_INLINE void create(
-        Kokkos::View<ValueType*>& x,
-        const ST& n,
+        Kokkos::vector<ValueType>& x,
+        const size_t& n,
         ValueType* src
         ) {
-    typename traits<ValueType>::vector_type::HostMirror h_x(src, n);
+    x = Kokkos::vector<ValueType>(n);
 
-    if(x.extent(0)!=h_x.extent(0)){
-        x = typename traits<ValueType>::vector_type("vector_"+ ::std::to_string(vector_name++),n);
+#pragma omp parallel for
+    for(int i=0;i<n;++i){
+        x[i] = src[i];
     }
-    Kokkos::deep_copy(x, h_x);
+
+    x.host_to_device();
 }
 
 
