@@ -107,7 +107,7 @@ public:
     template<typename IDT>
     ///
     /// \brief SetRow
-    /// \param i 航索引
+    /// \param i 行索引
     /// \param x
     ///
     CHIPSUM_FUNCTION_INLINE void SetRow(IDT i,vector_type& x){
@@ -116,14 +116,84 @@ public:
 
     template<typename IDT>
     ///
-    /// \brief GetRowPtr 获取某一行的非拷贝数据
+    /// \brief SetCol
+    /// \param i 列索引
+    /// \param x
+    ///
+    CHIPSUM_FUNCTION_INLINE void SetCol(IDT i,vector_type& x){
+        ChipSum::Numeric::Impl::DenseMat::set_col(__data, x.GetData(), i);
+    }
+
+    template<typename IDT>
+    ///
+    /// \brief GetRowCopy 获取某一行的拷贝数据
     /// \param i 行索引
     /// \param x
     ///
     CHIPSUM_FUNCTION_INLINE void GetRowCopy(IDT i,vector_type& x){
-        ChipSum::Numeric::Impl::DenseMat::get_row_copy(__data,x.GetData(),i);
+        ChipSum::Numeric::Impl::DenseMat::get_row_copy(__data, x.GetData(), i);
     }
 
+    template<typename IDT>
+    ///
+    /// \brief GetColCopy 获取某一列的拷贝数据
+    /// \param i 列索引
+    /// \param x
+    ///
+    CHIPSUM_FUNCTION_INLINE void GetColCopy(IDT i,vector_type& x){
+        ChipSum::Numeric::Impl::DenseMat::get_col_copy(__data, x.GetData(), i);
+    }
+
+    template<typename IDT>
+    ///
+    /// \brief GetRowSlice 获取某一列的拷贝数据
+    /// \param idx 行索引
+    /// \param i 行终止索引
+    /// \param j 行终止索引
+    /// \param x
+    ///
+    CHIPSUM_FUNCTION_INLINE void GetRowSlice(IDT idx, IDT i, IDT j, vector_type& x){
+        ChipSum::Numeric::Impl::DenseMat::get_row_slice(__data, x.GetData(), idx, i, j);
+    }
+
+    template<typename IDT>
+    ///
+    /// \brief GetColSlice 获取某一列的拷贝数据
+    /// \param idx 列索引
+    /// \param i 列起始索引
+    /// \param j 列终止索引
+    /// \param x
+    ///
+    CHIPSUM_FUNCTION_INLINE void GetColSlice(IDT idx, IDT i, IDT j, vector_type& x){
+        ChipSum::Numeric::Impl::DenseMat::get_col_slice(__data, x.GetData(), idx, i, j);
+    }
+
+    template<typename IDT>
+    ///
+    /// \brief GetPartSlice 获取某一局部矩阵的拷贝数据
+    /// \param l_i 左上角行索引
+    /// \param l_j 左上角列索引
+    /// \param r_i 右下角行索引
+    /// \param r_j 右下角列索引
+    /// \param x
+    ///
+    CHIPSUM_FUNCTION_INLINE void GetPartSlice(IDT l_i, IDT l_j, IDT r_i, IDT r_j, DenseMatrix& x){
+        ChipSum::Numeric::Impl::DenseMat::get_part_slice(__data, x.GetData(), l_i, l_j, r_i, r_j);
+    }
+
+    ///
+    /// \brief Device端到Host端数据深拷贝
+    ///
+    CHIPSUM_FUNCTION_INLINE void DeviceToHost(){
+        ChipSum::Numeric::Impl::DenseMat::device_to_host(__data);
+    }
+
+    ///
+    /// \brief Host端到Device端数据深拷贝
+    ///
+    CHIPSUM_FUNCTION_INLINE void HostToDevice(){
+        ChipSum::Numeric::Impl::DenseMat::host_to_device(__data);
+    }
 
     ///
     /// \brief operator * GEMM
@@ -149,6 +219,80 @@ public:
 
     }
 
+    ///
+    /// \brief LU分解，结果存入原矩阵
+    /// \param tiny 分解精度,默认为0
+    ///
+    CHIPSUM_FUNCTION_INLINE void LU(const value_type tiny = 0) {
+        ChipSum::Numeric::Impl::DenseMat::lu(__data,tiny);
+    }
+
+    ///
+    /// \brief QR分解，结果存入原矩阵
+    /// \param 输出矩阵系数tau
+    /// \param 输出矩阵系数w
+    ///
+    CHIPSUM_FUNCTION_INLINE void QR(vector_type &x,vector_type& y) {
+        ChipSum::Numeric::Impl::DenseMat::qr(__data,x.GetData(),y.GetData());
+    }
+
+    ///
+    /// \brief HESSENBERG变换，结果存入原矩阵
+    /// \param 输出矩阵系数tau
+    /// \param 输出矩阵系数w
+    ///
+    CHIPSUM_FUNCTION_INLINE void HESSENBERG(vector_type &t,vector_type& w) {
+        ChipSum::Numeric::Impl::DenseMat::hessenberg(__data,t.GetData(),w.GetData());
+    }
+
+    ///
+    /// \brief op(A)*X = alpha*B if side == "L" or "l", X*op(A) = alpha*B if side == "R" or "r"
+    /// \param *this  [IN,OUT]输入/输出矩阵B，输入时，多重RHS的M×N矩阵。输出时，用求解的x覆盖。
+    /// \param A      [IN]矩阵A,上三角矩阵或下三角矩阵
+    /// \param alpha  [IN]标量系数
+    /// \param side[] [IN]op(A)*X时"L" or "l"，X*op(A)时"R" or "r"
+    /// \param uplo[] [IN]A是上三角矩阵"U" or "u",下三角矩阵"L" or "l"
+    /// \param trans[][IN]op(A)当"N" or "n"非转置,"T" or "t"转置, "C" or "c"伴随
+    /// \param diag[] [IN]"U" or "u" 对角线参数，对角线为unit，"N" or "n"对角线非unit
+    ///
+    CHIPSUM_FUNCTION_INLINE void TRSM(DenseMatrix &A,
+                                      const value_type alpha,
+                                      const char side[],
+                                      const char uplo[],
+                                      const char trans[]="N",
+                                      const char diag[]="N") {
+        ChipSum::Numeric::Impl::DenseMat::trsm(A.GetData(),__data,alpha,side,uplo,trans,diag);
+    }
+
+    ///
+    /// \brief B = alpha * op(A) * B if side == "L" or "l"  B = alpha * B * op(A) if side == "R" or "r"
+    /// \param *this  [IN,OUT]输入/输出矩阵B，输入时，多重RHS的M×N矩阵。输出时，用求解的x覆盖。
+    /// \param A      [IN]矩阵A,上三角矩阵或下三角矩阵
+    /// \param alpha  [IN]标量系数
+    /// \param side[] [IN]op(A)*X时"L" or "l"，X*op(A)时"R" or "r"
+    /// \param uplo[] [IN]A是上三角矩阵"U" or "u",下三角矩阵"L" or "l"
+    /// \param trans[][IN]op(A)当"N" or "n"非转置,"T" or "t"转置, "C" or "c"伴随
+    /// \param diag[] [IN]"U" or "u" 对角线参数，对角线为unit，"N" or "n"对角线非unit
+    ///
+    CHIPSUM_FUNCTION_INLINE void TRMM(DenseMatrix &A,
+                                      const value_type alpha,
+                                      const char side[],
+                                      const char uplo[],
+                                      const char trans[]="N",
+                                      const char diag[]="N") {
+        ChipSum::Numeric::Impl::DenseMat::trsm(A.GetData(),__data,alpha,side,uplo,trans,diag);
+    }
+
+    ///
+    /// \brief 上/下三角矩阵的逆, A = inv(A)
+    /// \param *this  [IN,OUT]输入/输出矩阵A/inv(A)
+    /// \param diag[] [IN]"U" or "u" 对角线参数，对角线为unit,"N" or "n"对角线非unit
+    /// \return int    0成功,i如果矩阵的第i对角线元素为零，且无法完成计算
+    ///
+    CHIPSUM_FUNCTION_INLINE int TRTRI(const char uplo[],const char diag[]="N") {
+        return ChipSum::Numeric::Impl::DenseMat::trtri(__data,uplo,diag);
+    }
+    
 
     ///
     /// \brief operator * GEMV
@@ -237,6 +381,115 @@ public:
     }
 
 
+    ///
+    /// \brief operator [], 获取device端 A(i,j)值
+    ///        device端 仅返回二维中的该行的首地址，列由C++自身寻址完成
+    /// \param i 行索引
+    /// \param j 列索引
+    /// \return A[i,0]
+    ///
+    CHIPSUM_SPECIAL_INLINE value_type *operator[](const_size_type_ref i) const{
+        return ChipSum::Numeric::Impl::DenseMat::item(__data, i, 0);
+    }
+
+    ///
+    /// \brief Item函数, 获取device端 A(i,j)值
+    /// \param i 行索引
+    /// \param j 列索引
+    /// \return A[i,j]
+    ///
+    CHIPSUM_SPECIAL_INLINE value_type & Item(const_size_type_ref i,
+                                              const_size_type_ref j) const{
+        return *(ChipSum::Numeric::Impl::DenseMat::item(__data, i, j));
+    }
+
+    // ********************** AI op start ********************** //
+    
+    ///
+    /// \brief dense, without bias, out = __data * weight
+    /// \return out
+    /// 
+    CHIPSUM_FUNCTION_INLINE void Dense(DenseMatrix& weight, DenseMatrix& out) {
+        return ChipSum::Numeric::Impl::DenseMat::dense(__data, weight.GetData(), out.GetData());
+    }
+
+    ///
+    /// \brief dense, without bias, out = __data * weight, with transpose parameter
+    /// \return out
+    /// 
+    CHIPSUM_FUNCTION_INLINE void Dense(const char transA[], const char transB[], 
+                                        DenseMatrix& weight, DenseMatrix& out) {
+        return ChipSum::Numeric::Impl::DenseMat::dense(__data, weight.GetData(), out.GetData(), transA, transB);
+    }
+
+    ///
+    /// \brief dense, with bias, out = __data * weight + bias
+    /// \return out
+    /// 
+    CHIPSUM_FUNCTION_INLINE void Dense(DenseMatrix& weight, vector_type& bias, DenseMatrix& out) {
+        return ChipSum::Numeric::Impl::DenseMat::dense(__data, weight.GetData(), bias.GetData(), out.GetData());
+    }
+
+    ///
+    /// \brief dense, with bias, out = __data * weight + bias, with transpose parameter
+    /// \return out
+    /// 
+    CHIPSUM_FUNCTION_INLINE void Dense(const char transA[], const char transB[], 
+                                        DenseMatrix& weight, vector_type& bias, DenseMatrix& out) {
+        return ChipSum::Numeric::Impl::DenseMat::dense(__data, weight.GetData(), bias.GetData(), out.GetData(), transA, transB);
+    }
+
+    ///
+    /// \brief Relu, val>0 ? val : 0
+    /// \return A[i,j]
+    /// 
+    CHIPSUM_FUNCTION_INLINE void Relu() {
+        return ChipSum::Numeric::Impl::DenseMat::relu(__data);
+    }
+
+    ///
+    /// \brief LeakyRelu, val>0 ? val : 0.01*val
+    /// \return A[i,j]
+    /// 
+    CHIPSUM_FUNCTION_INLINE void LeakyRelu() {
+        return ChipSum::Numeric::Impl::DenseMat::leakyrelu(__data);
+    }
+
+    ///
+    /// \brief Softmax
+    /// \return A[i,j]
+    /// 
+    CHIPSUM_FUNCTION_INLINE void Softmax() {
+        return ChipSum::Numeric::Impl::DenseMat::softmax(__data);
+    }
+
+    ///
+    /// \brief logSoftmax
+    /// \return A[i,j]
+    /// 
+    CHIPSUM_FUNCTION_INLINE void LogSoftmax() {
+        return ChipSum::Numeric::Impl::DenseMat::softmax(__data, true);
+    }
+
+    ///
+    /// \brief norm
+    /// \return A[i,j]
+    /// 
+    CHIPSUM_FUNCTION_INLINE void Norm() {
+        return ChipSum::Numeric::Impl::DenseMat::norm(__data);
+    }
+
+    ///
+    /// \brief argma
+    /// \return int index of the max value
+    /// 
+    template<typename OStreamT=std::ostream>
+    CHIPSUM_FUNCTION_INLINE void Argmax(OStreamT &out = std::cout) {
+        ChipSum::Numeric::Impl::DenseMat::argmax(__data,out);
+    }
+
+    // ********************** AI op finish ********************** //
+
     template<typename OStreamT=std::ostream>
     ///
     /// \brief Print 打印函数
@@ -255,7 +508,7 @@ public:
 /// \brief Matrix 默认的
 ///
 typedef ChipSum::Numeric::DenseMatrix<CSFloat,ChipSum::Backend::DefaultBackend>
-Matrix;
+CSMatrix;
 
 typedef ChipSum::Numeric::DenseMatrix<CSFloat,ChipSum::Backend::Serial>
 SerialMatrix;
